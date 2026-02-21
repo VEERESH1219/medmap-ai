@@ -1,14 +1,14 @@
 import { useState } from 'react';
 
-export default function OCRPassDebugger({ ocrResult }) {
+export default function OCRPassDebugger({ ocrResult, compact = false }) {
     const [open, setOpen] = useState(false);
 
     if (!ocrResult) return null;
 
     const qualityColors = {
-        HIGH_CONFIDENCE: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/30',
-        MEDIUM_CONFIDENCE: 'text-amber-400 bg-amber-500/10 ring-amber-500/30',
-        LOW_QUALITY: 'text-red-400 bg-red-500/10 ring-red-500/30',
+        HIGH_CONFIDENCE: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
+        MEDIUM_CONFIDENCE: 'text-amber-400 border-amber-500/20 bg-amber-500/5',
+        LOW_QUALITY: 'text-red-400 border-red-500/20 bg-red-500/5',
     };
 
     const qualityLabels = {
@@ -17,90 +17,112 @@ export default function OCRPassDebugger({ ocrResult }) {
         LOW_QUALITY: 'Low Quality',
     };
 
+    if (compact) {
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase display-font">Consensus Qual.</span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-lg border ${qualityColors[ocrResult.quality_tag] || qualityColors.LOW_QUALITY}`}>
+                        {ocrResult.consensus_score.toFixed(1)}%
+                    </span>
+                </div>
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 shadow-inner">
+                    <p className="text-[11px] text-slate-300 mono-font leading-relaxed whitespace-pre-wrap">
+                        {ocrResult.final_text || '(OCR Bypassed)'}
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="w-full max-w-5xl mx-auto mb-8 animate-slide-up">
-            {/* Consensus Score Hero */}
-            <div className="rounded-2xl bg-slate-800/50 border border-slate-700/40 p-6">
-                <div className="flex items-center justify-between mb-4">
+        <div className="w-full animate-fade-in-up">
+            <div className="rounded-[1.5rem] glass-panel border-white/5 p-8 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500/20 to-transparent" />
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                     <div>
-                        <h3 className="text-sm font-bold text-slate-300 display-font uppercase tracking-wider">
-                            OCR Consensus Result
+                        <h3 className="text-sm font-black text-white display-font uppercase tracking-[0.2em] mb-2">
+                            OCR Intelligence Console
                         </h3>
-                        <p className="text-xs text-slate-500 mono-font mt-1">
-                            {ocrResult.passes_completed > 0
-                                ? `${ocrResult.passes_completed} passes · ${ocrResult.passes_agreed} agreed`
-                                : 'Direct text input — OCR bypassed'}
-                        </p>
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs text-slate-500 mono-font">
+                                {ocrResult.passes_completed > 0
+                                    ? `Parallel Passes: ${ocrResult.passes_completed}`
+                                    : 'Static Input Session'}
+                            </span>
+                            {ocrResult.passes_agreed > 0 && (
+                                <span className="text-[10px] font-bold text-cyan-500/80 mono-font bg-cyan-500/10 px-2 py-0.5 rounded italic">
+                                    {ocrResult.passes_agreed} Agreed
+                                </span>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ring-1
-                ${qualityColors[ocrResult.quality_tag] || qualityColors.LOW_QUALITY}`}
+                    <div className="flex items-center gap-6">
+                        <div className="text-right">
+                            <p className="text-[10px] uppercase font-black tracking-widest text-slate-600 mb-1 display-font">Consensus Score</p>
+                            <div className="text-4xl font-black text-white display-font tracking-tighter">
+                                {ocrResult.consensus_score.toFixed(1)}<span className="text-lg opacity-30 ml-1">%</span>
+                            </div>
+                        </div>
+                        <div className={`px-4 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest display-font shadow-lg
+                            ${qualityColors[ocrResult.quality_tag] || qualityColors.LOW_QUALITY}`}
                         >
                             {qualityLabels[ocrResult.quality_tag] || ocrResult.quality_tag}
-                        </span>
-
-                        <div className="text-right">
-                            <div className="text-3xl font-extrabold text-slate-100 display-font">
-                                {ocrResult.consensus_score.toFixed(1)}
-                                <span className="text-sm text-slate-500 ml-1">%</span>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Consensus Text */}
-                <div className="rounded-xl bg-slate-900/60 border border-slate-700/30 p-4">
-                    <p className="text-xs text-slate-500 mono-font mb-2">Final Consensus Text</p>
-                    <p className="text-sm text-slate-200 mono-font whitespace-pre-wrap leading-relaxed">
-                        {ocrResult.final_text || '(empty)'}
-                    </p>
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 to-transparent rounded-[1.2rem] blur opacity-50 group-hover:opacity-100 transition duration-1000" />
+                    <div className="relative rounded-[1rem] bg-black/60 border border-white/5 p-6 shadow-inner">
+                        <p className="text-[10px] text-slate-500 mono-font mb-3 uppercase tracking-widest font-bold">Consensus Extraction Output</p>
+                        <p className="text-sm text-slate-200 mono-font whitespace-pre-wrap leading-relaxed">
+                            {ocrResult.final_text || '(Static data input, no OCR generated)'}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Pass Results (if available) */}
                 {ocrResult.pass_results && ocrResult.pass_results.length > 0 && (
-                    <>
+                    <div className="mt-8">
                         <button
                             onClick={() => setOpen(!open)}
-                            className="mt-4 flex items-center gap-2 text-xs text-slate-400 hover:text-cyan-400
-                transition-colors mono-font"
+                            className="flex items-center gap-2 group transition-all"
                         >
-                            <svg
-                                className={`w-3 h-3 transition-transform ${open ? 'rotate-90' : ''}`}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                            </svg>
-                            {open ? 'Hide' : 'Show'} Individual Pass Results
+                            <div className={`w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-transform ${open ? 'rotate-90 bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'text-slate-500'}`}>
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                            <span className="text-[10px] font-black text-slate-500 group-hover:text-slate-300 uppercase tracking-widest display-font">
+                                {open ? 'Collapse' : 'Inspect'} Metadata Vectors
+                            </span>
                         </button>
 
                         {open && (
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 animate-fade-in-up">
                                 {ocrResult.pass_results.map((pass, idx) => (
                                     <div
                                         key={idx}
-                                        className="rounded-xl bg-slate-900/40 border border-slate-700/30 p-3"
+                                        className="rounded-2xl glass-panel border-white/5 p-4 relative overflow-hidden group/pass"
                                     >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-semibold text-cyan-400 display-font">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-[9px] font-black text-cyan-400/70 uppercase tracking-tighter mono-font truncate pr-2">
                                                 {pass.variant}
                                             </span>
-                                            <span className="text-xs text-slate-500 mono-font">
-                                                {pass.confidence.toFixed(1)}% conf
+                                            <span className="text-[8px] font-bold text-slate-600 mono-font">
+                                                {pass.confidence.toFixed(0)}%
                                             </span>
                                         </div>
-                                        <p className="text-xs text-slate-400 mono-font line-clamp-4 whitespace-pre-wrap">
-                                            {pass.text || '(empty)'}
+                                        <p className="text-[10px] text-slate-500 mono-font line-clamp-3 leading-tight group-hover/pass:text-slate-300 transition-colors">
+                                            {pass.text || '(No signals)'}
                                         </p>
                                     </div>
                                 ))}
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
             </div>
         </div>
