@@ -1,8 +1,27 @@
 @import "tailwindcss";
 
-/* ─── Custom Font Utilities ─── */
+/* ─── Google Fonts ─── */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ─── Design Tokens ─── */
+:root {
+  --bg-main: #020617;
+  --bg-card: rgba(15, 23, 42, 0.6);
+  --border-glass: rgba(148, 163, 184, 0.1);
+  --border-glass-bright: rgba(148, 163, 184, 0.2);
+  
+  --color-cyan: #22d3ee;
+  --color-purple: #a855f7;
+  --color-indigo: #6366f1;
+}
+
+/* ─── Font Utilities ─── */
 .display-font {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', sans-serif;
+}
+
+.body-font {
+  font-family: 'Inter', sans-serif;
 }
 
 .mono-font {
@@ -17,73 +36,78 @@
 }
 
 body {
-  font-family: 'IBM Plex Mono', monospace;
-  background-color: #020617; /* slate-950 */
-  color: #e2e8f0;            /* slate-200 */
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-main);
+  color: #e2e8f0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-/* ─── Subtle Grid Background ─── */
-body::before {
-  content: '';
+/* ─── Premium Background ─── */
+.bg-mesh {
   position: fixed;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  z-index: 0;
+  z-index: -1;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(34, 211, 238, 0.05) 0px, transparent 50%);
 }
 
-#root {
-  position: relative;
-  z-index: 1;
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: 
+    linear-gradient(var(--border-glass) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-glass) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse at center, black, transparent 80%);
 }
 
-/* ─── Scrollbar ─── */
-::-webkit-scrollbar {
-  width: 6px;
+/* ─── Glassmorphism ─── */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
 }
 
-::-webkit-scrollbar-track {
-  background: #0f172a;
+.glass-panel-hover:hover {
+  border-color: var(--border-glass-bright);
+  background: rgba(30, 41, 59, 0.7);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+/* ─── Buttons & Inputs ─── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
+  color: #020617;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(34, 211, 238, 0.4);
 }
 
 /* ─── Animations ─── */
-@keyframes pulse-cyan {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(34, 211, 238, 0); }
-}
-
-.animate-pulse-cyan {
-  animation: pulse-cyan 2s infinite;
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-slide-up {
-  animation: slide-up 0.5s ease-out forwards;
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
 }
 
-@keyframes fill-bar {
-  from { width: 0%; }
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
 }
 
-.animate-fill-bar {
-  animation: fill-bar 1.2s ease-out forwards;
+.animate-glow {
+  animation: glow-pulse 4s ease-in-out infinite;
 }
