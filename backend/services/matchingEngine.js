@@ -15,7 +15,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getEmbedding, getZeroVector } from './embeddingService.js';
-import { verifyMedicineRealWorld } from './aiVerificationService.js';
+import { verifyMedicineRealWorld, getMedicineDescription } from './aiVerificationService.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -226,6 +226,15 @@ export async function matchMedicines(extractions) {
             if (aiMatch) {
                 matchedMedicine = aiMatch;
             }
+        }
+
+        // --- ENRICHMENT STAGE: OpenAI Description ---
+        if (matchedMedicine) {
+            const description = await getMedicineDescription(
+                matchedMedicine.brand_name,
+                matchedMedicine.generic_name
+            );
+            matchedMedicine.description = description;
         }
 
         if (matchedMedicine) {
