@@ -14,7 +14,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const SYSTEM_PROMPT = `You are a strict medical data extraction engine. Your task is to extract medicine-related entities from the given text.
+const SYSTEM_PROMPT = `You are a strict medical data extraction engine. Your task is to extract medicine-related entities and the overall medical condition/diagnosis from the given text.
 
 RULES:
 1. Extract ONLY medicines, tablets, injections, capsules, and syrups.
@@ -25,7 +25,9 @@ RULES:
 6. Extract duration as an integer.
 7. Ignore header text, clinic details, patient names, and dates.
 8. Explicitly ignore non-drug orders: X-rays, MRI, blood tests, Physiotherapy, exercise, or lifestyle advice.
-9. If no medicines are found, return {"medicines": []}.
+9. High Priority: Extract the "medical_condition" or "diagnosis" (e.g., "Hypoglycemia", "Respiratory Infection", "Hypertension", "Fever"). Look for keywords like "Impression", "Imp", "Diagnosis", "Diag", "Suffering from", "C/o", or "Advised for".
+10. If multiple conditions are found, join them into a single concise string.
+11. If no medicines or diagnosis are found, return {"medicines": [], "medical_condition": null}.
 
 JSON SCHEMA:
 {
@@ -37,22 +39,19 @@ JSON SCHEMA:
       "frequency_per_day": integer or null,
       "duration_days": integer or null
     }
-  ]
+  ],
+  "medical_condition": "string or null"
 }
 
 EXAMPLE:
-Input: "Amoxiclav 625 Tab BD x 5 days"
+Input: "Diagnosis: Type 2 Diabetes. Metformin 500mg OD x 30 days"
 Output: {
-  "medicines": [
-    {
-      "brand_name": "Amoxiclav",
-      "brand_variant": "625",
-      "form_normalized": "Tablet",
-      "frequency_per_day": 2,
-      "duration_days": 5
-    }
-  ]
-}`;
+  "medicines": [...],
+  "medical_condition": "Type 2 Diabetes"
+}
+
+NOTE: The medical_condition field is mandatory in the JSON output, even if it is null.
+`;
 
 /**
  * Extract structured medicine entities from OCR text using OpenAI GPT-4o.
@@ -86,19 +85,23 @@ export async function runNLPExtraction(ocrText) {
         ],
       });
 
-      const content = response.choices[0]?.message?.content || '{"medicines": []}';
+      const content = response.choices[0]?.message?.content || '{"medicines": [], "medical_condition": null}';
       console.log('[NLP] Raw OpenAI Content:', content);
       const parsed = JSON.parse(content);
       const medicines = Array.isArray(parsed.medicines) ? parsed.medicines : [];
+      const medicalCondition = parsed.medical_condition || null;
 
-      return medicines.map((med, idx) => ({
-        id: `ext_${String(idx + 1).padStart(3, '0')}`,
-        brand_name: med.brand_name || '',
-        brand_variant: med.brand_variant || null,
-        form: med.form_normalized || null,
-        frequency_per_day: typeof med.frequency_per_day === 'number' ? med.frequency_per_day : null,
-        duration_days: typeof med.duration_days === 'number' ? med.duration_days : null,
-      }));
+      return {
+        medicines: medicines.map((med, idx) => ({
+          id: `ext_${String(idx + 1).padStart(3, '0')}`,
+          brand_name: med.brand_name || '',
+          brand_variant: med.brand_variant || null,
+          form: med.form_normalized || null,
+          frequency_per_day: typeof med.frequency_per_day === 'number' ? med.frequency_per_day : null,
+          duration_days: typeof med.duration_days === 'number' ? med.duration_days : null,
+        })),
+        medical_condition: medicalCondition
+      };
     } catch (err) {
       retries++;
       if (retries > maxRetries) {
@@ -108,6 +111,5 @@ export async function runNLPExtraction(ocrText) {
       console.warn(`[NLP] Attempt ${retries} failed, retrying...`);
     }
   }
-
-  return [];
+  return { medicines: [], medical_condition: null };
 }
