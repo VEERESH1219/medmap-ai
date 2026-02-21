@@ -231,6 +231,35 @@ export default function App() {
 
               {/* Right Column: Matched List */}
               <div className="flex-1 space-y-6">
+                {/* --- DIAGNOSIS BANNER --- */}
+                {result.medical_condition && (
+                  <div className="glass-panel p-8 rounded-3xl border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 via-indigo-500/5 to-transparent relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-full bg-cyan-500/5 blur-3xl rounded-full" />
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-2xl shadow-lg border border-cyan-500/20">
+                          🩺
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] mb-1.5 display-font">Prescription Diagnosis</p>
+                          <h2 className="text-2xl md:text-3xl font-black text-white display-font tracking-tight">
+                            {result.medical_condition}
+                          </h2>
+                        </div>
+                      </div>
+                      <div className="hidden lg:block px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+                        <p className="text-[9px] text-slate-500 mono-font uppercase tracking-widest text-right mb-1">AI Analytical Confidence</p>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-cyan-500 w-[94%]" />
+                          </div>
+                          <span className="text-[10px] font-bold text-cyan-400">94%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-white display-font flex items-center gap-3">
                     <span className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-sm">💊</span>
