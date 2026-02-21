@@ -95,11 +95,18 @@ export default function ResultCard({ extraction, index }) {
                     {matched_medicine ? (
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className={`w-1 h-3 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.5)] ${matched_medicine.verified_by === 'AI_KNOWLEDGE' ? 'bg-purple-500 shadow-purple-500/50' : 'bg-cyan-500 shadow-cyan-500/50'}`} />
-                                <h4 className={`text-[10px] font-black uppercase tracking-widest display-font ${matched_medicine.verified_by === 'AI_KNOWLEDGE' ? 'text-purple-400' : 'text-cyan-400/80'}`}>
-                                    {matched_medicine.verified_by === 'AI_KNOWLEDGE' ? 'AI Knowledge Verification' : 'Database Registry Match'}
+                                <div className={`w-1 h-3 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.5)] 
+                                    ${(matched_medicine.verified_by?.includes('AI Knowledge') || matched_medicine.verified_by?.includes('Web Source'))
+                                        ? 'bg-purple-500 shadow-purple-500/50'
+                                        : 'bg-cyan-500 shadow-cyan-500/50'}`}
+                                />
+                                <h4 className={`text-[10px] font-black uppercase tracking-widest display-font 
+                                    ${(matched_medicine.verified_by?.includes('AI Knowledge') || matched_medicine.verified_by?.includes('Web Source'))
+                                        ? 'text-purple-400'
+                                        : 'text-cyan-400/80'}`}>
+                                    {matched_medicine.verified_by || 'Database Registry Match'}
                                 </h4>
-                                {matched_medicine.verified_by === 'AI_KNOWLEDGE' && (
+                                {(matched_medicine.verified_by?.includes('AI Knowledge') || matched_medicine.verified_by?.includes('Web Source')) && (
                                     <span className="text-[8px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30 font-bold ml-auto animate-pulse">STAGE 4</span>
                                 )}
                             </div>
@@ -146,6 +153,17 @@ export default function ResultCard({ extraction, index }) {
                                     confidence={matched_medicine.confidence}
                                 />
                             </div>
+
+                            {/* --- MEDICINE USAGE SECTION --- */}
+                            {matched_medicine.description && (
+                                <div className="mt-4 p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 relative overflow-hidden group/usage">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/40" />
+                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-cyan-400/60 mb-1.5 display-font">Usage & Indication (AI)</h5>
+                                    <p className="text-sm text-slate-200 leading-relaxed font-medium italic">
+                                        "{matched_medicine.description}"
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     ) : extraction.fallback_required ? (
                         <div className="flex flex-col items-start justify-center py-6">
