@@ -1,10 +1,8 @@
 /**
- * MedMap AI — Embedding Generator
- *
- * Populates the `embedding` column for all medicines in Supabase
- * using OpenAI text-embedding-3-small.
- *
- * Usage: node scripts/generateEmbeddings.js
+ * MedMap AI — Optimized Embedding Generator
+ * 
+ * Populates the `embedding` column for medicines in Supabase using OpenAI.
+ * Optimized for large datasets (250k+ records).
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,66 +16,82 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
-async function main() {
-    console.log('\n🔢 Fetching medicines without embeddings...\n');
+async function processBatch(batch) {
+    return Promise.all(
+        batch.map(async (med) => {
+            try {
+                // Skip if already has embedding (second check)
+                if (med.embedding) return;
 
-    // Fetch all medicines where embedding IS NULL
-    const { data: medicines, error } = await supabase
-        .from('medicines')
-        .select('id, brand_name, generic_name, form')
-        .is('embedding', null);
+                const text = `${med.brand_name} ${med.generic_name} ${med.form}`.trim();
+                const embedding = await getEmbedding(text);
 
-    if (error) {
-        throw new Error(`Failed to fetch medicines: ${error.message}`);
-    }
+                const { error: updateError } = await supabase
+                    .from('medicines')
+                    .update({ embedding: JSON.stringify(embedding) })
+                    .eq('id', med.id);
 
-    if (!medicines || medicines.length === 0) {
-        console.log('✅ All medicines already have embeddings. Nothing to do.\n');
-        return;
-    }
-
-    console.log(`📊 Found ${medicines.length} medicines without embeddings.\n`);
-
-    // Process in batches of 20 (rate limit safety)
-    const BATCH_SIZE = 20;
-    let processed = 0;
-
-    for (let i = 0; i < medicines.length; i += BATCH_SIZE) {
-        const batch = medicines.slice(i, i + BATCH_SIZE);
-
-        await Promise.all(
-            batch.map(async (med) => {
-                try {
-                    const text = `${med.brand_name} ${med.generic_name} ${med.form}`;
-                    const embedding = await getEmbedding(text);
-
-                    const { error: updateError } = await supabase
-                        .from('medicines')
-                        .update({ embedding: JSON.stringify(embedding) })
-                        .eq('id', med.id);
-
-                    if (updateError) {
-                        console.error(`❌ Failed to update ${med.brand_name}:`, updateError.message);
-                    } else {
-                        processed++;
-                        console.log(`🔢 Generated embedding ${processed}/${medicines.length} — ${med.brand_name}`);
-                    }
-                } catch (err) {
-                    console.error(`❌ Embedding error for ${med.brand_name}:`, err.message);
+                if (updateError) {
+                    console.error(`❌ Failed to update ${med.brand_name}:`, updateError.message);
+                } else {
+                    return true;
                 }
-            })
-        );
+            } catch (err) {
+                console.error(`❌ Embedding error for ${med.brand_name}:`, err.message);
+            }
+            return false;
+        })
+    );
+}
 
-        // Brief pause between batches for rate limiting
-        if (i + BATCH_SIZE < medicines.length) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+async function main() {
+    console.log('\n🔢 Starting optimized embedding generation...\n');
+
+    const TOTAL_LIMIT = 250000; // Hard limit for safety
+    const FETCH_CHUNK = 1000;   // Fetch 1000 null records at a time
+    const BATCH_SIZE = 20;      // Process 20 parallel requests to OpenAI
+
+    let totalProcessed = 0;
+
+    while (totalProcessed < TOTAL_LIMIT) {
+        console.log(`\n⏳ Fetching next ${FETCH_CHUNK} records without embeddings...`);
+
+        const { data: missing, error } = await supabase
+            .from('medicines')
+            .select('id, brand_name, generic_name, form, embedding')
+            .is('embedding', null)
+            .limit(FETCH_CHUNK);
+
+        if (error) {
+            console.error('❌ Database fetch error:', error.message);
+            break;
+        }
+
+        if (!missing || missing.length === 0) {
+            console.log('\n✅ All records have embeddings! Done.\n');
+            break;
+        }
+
+        console.log(`📊 Processing ${missing.length} records in small batches...`);
+
+        for (let i = 0; i < missing.length; i += BATCH_SIZE) {
+            const batch = missing.slice(i, i + BATCH_SIZE);
+            const results = await processBatch(batch);
+
+            const successCount = results.filter(Boolean).length;
+            totalProcessed += successCount;
+
+            process.stdout.write(`\r🔢 Progress: ${totalProcessed} records updated...`);
+
+            // Tiny sleep for rate limiting
+            await new Promise(r => setTimeout(r, 200));
         }
     }
 
-    console.log(`\n🎉 All embeddings generated! Total: ${processed}/${medicines.length}\n`);
+    console.log(`\n\n🎉 Finished! Total embeddings generated: ${totalProcessed}\n`);
 }
 
 main().catch((err) => {
-    console.error('❌ Embedding generation failed:', err);
+    console.error('❌ Critical failure:', err);
     process.exit(1);
 });
