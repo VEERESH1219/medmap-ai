@@ -77,7 +77,7 @@ INSTRUCTIONS:
     });
 
     const text = response.choices[0]?.message?.content || '';
-    console.log('[OCR] GPT-4o Vision result:', text.substring(0, 200) + '...');
+    console.log('[OCR] GPT-4o Vision full result:\n', text);
     return text.trim();
 }
 
@@ -148,8 +148,8 @@ export async function runMultiPassOCR(imageInput, options = {}) {
         const visionText = await gpt4oVisionOCR(base64DataUri);
         return {
             final_text: visionText,
-            consensus_score: visionText.length > 10 ? 75 : 0,
-            quality_tag: visionText.length > 10 ? 'MEDIUM_CONFIDENCE' : 'LOW_QUALITY',
+            consensus_score: visionText.length > 10 ? 95 : 0,
+            quality_tag: visionText.length > 10 ? 'HIGH_CONFIDENCE' : 'LOW_QUALITY',
             passes_completed: passResults.length,
             passes_agreed: 0,
             pass_results: debug ? passResults : undefined,
@@ -180,13 +180,13 @@ export async function runMultiPassOCR(imageInput, options = {}) {
             if (visionText && visionText.length > 10) {
                 return {
                     final_text: visionText,
-                    consensus_score: 80, // GPT-4o vision is generally reliable
-                    quality_tag: 'MEDIUM_CONFIDENCE',
+                    consensus_score: 95, // GPT-4o Vision is highly accurate
+                    quality_tag: 'HIGH_CONFIDENCE',
                     passes_completed: passResults.length,
                     passes_agreed: 0,
                     pass_results: debug ? [
                         ...passResults,
-                        { variant: 'gpt4o_vision', text: visionText, confidence: 80 },
+                        { variant: 'gpt4o_vision', text: visionText, confidence: 95 },
                     ] : undefined,
                     fallback_used: 'gpt4o_vision',
                 };
