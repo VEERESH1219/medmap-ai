@@ -224,7 +224,7 @@ export default function App() {
       {/* ── Footer ──────────────────────────────── */}
       <footer className="w-full border-t border-slate-800/40 py-4">
         <p className="text-center text-[10px] text-slate-600 mono-font">
-          MedMap AI v1.0.0 — Multi-Pass OCR · Claude NER · Hybrid Matching
+          MedMap AI v1.0.0 — Multi-Pass OCR · GPT-4o NER · Hybrid Matching
         </p>
       </footer>
     </div>

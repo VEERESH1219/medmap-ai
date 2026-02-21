@@ -39,7 +39,7 @@ The system's core innovation is a **5-pass multi-pass OCR consensus engine** tha
 | Backend     | Node.js 20 + Express (ESM)                   |
 | Database    | Supabase (PostgreSQL + pgvector + pg_trgm)   |
 | OCR         | tesseract.js + sharp (5-pass preprocessing)  |
-| NLP/NER     | Anthropic Claude API (claude-opus-4-6)       |
+| NLP/NER     | OpenAI GPT-4o                                |
 | Embeddings  | OpenAI text-embedding-3-small (1536d)        |
 | Matching    | Supabase RPC hybrid_medicine_search          |
 
@@ -68,9 +68,8 @@ npm install
 cd ../backend
 cp .env.example .env
 # Edit .env with your real API keys:
-#   ANTHROPIC_API_KEY   — from console.anthropic.com
-#   OPENAI_API_KEY      — from platform.openai.com
-#   SUPABASE_URL        — from your Supabase project settings
+#   OPENAI_API_KEY       — from platform.openai.com (used for NLP/NER + embeddings)
+#   SUPABASE_URL         — from your Supabase project settings
 #   SUPABASE_SERVICE_KEY — from Supabase project settings → API
 ```
 
@@ -155,7 +154,7 @@ Returns `{ "status": "ok", "timestamp": "...", "version": "1.0.0" }`
 |-------|----------|
 | `LOW_IMAGE_QUALITY` error | Upload a clearer image with better lighting |
 | Embedding generation fails | Check OPENAI_API_KEY is valid and has credits |
-| NLP extraction returns empty | Check ANTHROPIC_API_KEY is valid |
+| NLP extraction returns empty | Check OPENAI_API_KEY is valid and has credits |
 | IVFFlat index creation fails | Ensure you have ≥100 rows. Create index after import. |
 | CORS errors in browser | Ensure FRONTEND_URL in .env matches your frontend URL |
 | `require is not defined` error | Ensure all imports use ESM syntax (import/export) |
