@@ -1,317 +1,313 @@
 import { useState } from 'react';
-import UploadZone from './components/UploadZone';
-import PipelineStepper from './components/PipelineStepper';
-import OCRPassDebugger from './components/OCRPassDebugger';
-import ResultCard from './components/ResultCard';
-import JsonInspector from './components/JsonInspector';
-import PrescriptionTextViewer from './components/PrescriptionTextViewer';
+import Home from './pages/Home';
+import SummaryCard from './components/SummaryCard';
+import MedicineCard from './components/MedicineCard';
+import HistoryPanel from './components/HistoryPanel';
+import MedicalWallet from './components/MedicalWallet';
+import DocumentScanner from './components/DocumentScanner';
+import { saveToHistory } from './services/HistoryService';
 
-const API_URL = '/api/process-prescription';
-
-const PHASE_STEPS = {
-  idle: 0,
-  uploading: 1,
-  preprocessing: 2,
-  ocr: 3,
-  nlp: 4,
-  matching: 5,
-  done: 5,
-  error: 0,
-};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export default function App() {
   const [phase, setPhase] = useState('idle');
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [drawerOpen, setDrawer] = useState(false);
+  const [walletOpen, setWallet] = useState(false);
 
-  const runPipeline = async (input) => {
-    setError(null);
-    setResult(null);
+  const isBusy = !['idle', 'done', 'error'].includes(phase);
 
+  async function run(input) {
+    setError(null); setResult(null);
     try {
-      setPhase('uploading');
-      await delay(400);
-
-      setPhase('preprocessing');
-      await delay(600);
-
+      setPhase('uploading'); await sleep(300);
+      setPhase('preprocessing'); await sleep(500);
       setPhase('ocr');
 
-      const body = {
-        ...input,
-        options: {
-          ocr_passes: 5,
-          min_consensus: 3,
-          debug_passes: true,
-        },
-      };
-
-      const response = await fetch(API_URL, {
+      const res = await fetch('/api/process-prescription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...input, options: { ocr_passes: 5, min_consensus: 3 } }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Server error ${res.status}`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.suggestion || 'Processing failed.');
-      }
-
-      setPhase('nlp');
-      await delay(500);
-
-      setPhase('matching');
-      await delay(400);
-
+      setPhase('nlp'); await sleep(350);
+      setPhase('matching'); await sleep(280);
+      saveToHistory(data, input.image ? 'image' : 'text');
       setResult(data);
       setPhase('done');
-    } catch (err) {
-      console.error('[Pipeline Error]', err);
-      setError(err.message || 'An unexpected error occurred.');
-      setPhase('error');
+    } catch (e) {
+      setError(e.message || 'Something went wrong.'); setPhase('error');
     }
-  };
+  }
 
-  const reset = () => {
-    setPhase('idle');
-    setResult(null);
-    setError(null);
-  };
-
-  const isProcessing = !['idle', 'done', 'error'].includes(phase);
+  const reset = () => { setPhase('idle'); setResult(null); setError(null); };
 
   return (
-    <div className="min-h-screen relative flex flex-col body-font">
-      {/* ── Background Elements ─────────────────── */}
-      <div className="bg-mesh" />
-      <div className="bg-grid" />
+    <>
+      {/* ── BACKGROUND ── */}
+      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', width: '70vw', height: '70vw', maxWidth: 700, maxHeight: 700, left: '-15%', top: '-15%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)', filter: 'blur(80px)', animation: 'orb-float 20s ease-in-out infinite alternate' }} />
+        <div style={{ position: 'absolute', width: '60vw', height: '60vw', maxWidth: 600, maxHeight: 600, right: '-10%', bottom: '-10%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%)', filter: 'blur(80px)', animation: 'orb-float 16s ease-in-out -8s infinite alternate' }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 20%, black 0%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 20%, black 0%, transparent 100%)',
+        }} />
+      </div>
 
-      {/* ── Header ──────────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4 group cursor-pointer" onClick={reset}>
-            <div className="relative">
-              <div className="absolute inset-0 bg-cyan-500/20 blur-lg rounded-full animate-pulse" />
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-500
-                flex items-center justify-center text-slate-950 font-black text-xl display-font shadow-lg shadow-cyan-500/20 relative">
-                M
+      {/* ── HISTORY DRAWER — always mounted ── */}
+      <HistoryPanel isOpen={drawerOpen} onClose={() => setDrawer(false)} />
+
+      {/* ── HEADER ── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        background: 'rgba(4,4,14,0.88)', backdropFilter: 'blur(24px)',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        WebkitBackdropFilter: 'blur(24px)',
+      }}>
+        <div style={{
+          maxWidth: 1200, margin: '0 auto',
+          padding: '0 clamp(16px, 4vw, 40px)',
+          height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          {/* Logo */}
+          <button onClick={reset} style={{
+            display: 'flex', alignItems: 'center', gap: 11,
+            background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900, fontSize: 18, color: '#fff',
+              boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+            }}>M</div>
+            <div>
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 15, color: '#f0f4ff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                MedMap <span style={{ color: '#10b981' }}>AI</span>
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+                Intelligent Analysis
               </div>
             </div>
-            <div>
-              <h1 className="text-xl font-extrabold text-white display-font tracking-tight">
-                MedMap <span className="text-cyan-400">AI</span>
-              </h1>
-              <p className="text-[10px] text-slate-400 mono-font tracking-widest uppercase">
-                Intelligent Analysis
-              </p>
-            </div>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-6">
-            <nav className="hidden md:flex items-center gap-8 mr-4">
-              {['Dashboard', 'History', 'Medicines', 'Settings'].map(item => (
-                <a key={item} href="#" className="text-xs font-semibold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest">
-                  {item}
-                </a>
-              ))}
-            </nav>
-            {phase === 'done' && (
-              <button
-                onClick={reset}
-                className="px-5 py-2 rounded-full glass-panel text-xs font-bold
-                  text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10
-                  transition-all active:scale-95 shadow-lg shadow-cyan-500/5"
-              >
-                + New Analysis
-              </button>
+          {/* Nav — always visible on all screens */}
+          <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <NavBtn onClick={reset} active={phase === 'idle' || phase === 'done'}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+              </svg>
+              Dashboard
+            </NavBtn>
+            <NavBtn onClick={() => setDrawer(true)}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+              </svg>
+              History
+            </NavBtn>
+          </nav>
+
+          {/* Right CTA */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {phase === 'done' && result && (
+              <button onClick={() => setWallet(true)} style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                background: 'rgba(16,185,129,0.12)', color: '#6ee7b7',
+                border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10,
+                padding: '8px 16px', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}>💊 Wallet</button>
+            )}
+            {(phase === 'done' || phase === 'error') && (
+              <button onClick={reset} style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                color: '#fff', borderRadius: 10, border: 'none',
+                padding: '8px 18px', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 800, fontSize: 12, cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+              }}>+ New Scan</button>
             )}
           </div>
         </div>
       </header>
 
-      {/* ── Main Content ────────────────────────── */}
-      <main className="flex-1 flex flex-col items-center justify-start px-6 py-12 md:py-20 relative z-10">
+      {/* ── MAIN ── */}
+      <main style={{ flex: 1, position: 'relative', zIndex: 10 }}>
 
-        {/* IDLE — Show upload zone */}
-        {phase === 'idle' && (
-          <div className="w-full max-w-3xl text-center animate-fade-in-up">
-            <div className="mb-12">
-              <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold tracking-[0.2em] uppercase border border-cyan-500/20 mb-6 inline-block">
-                Powered by GPT-4o Vision
-              </span>
-              <h2 className="text-5xl md:text-6xl font-black text-white display-font mb-6 tracking-tight leading-tight">
-                Understand your <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400">Prescriptions</span> instantly.
-              </h2>
-              <p className="text-lg text-slate-400 max-w-xl mx-auto leading-relaxed">
-                Upload image, extract names, and match with our database of 250k+ medicines.
-              </p>
-            </div>
+        {/* IDLE */}
+        {phase === 'idle' && <Home onSubmit={run} disabled={false} />}
 
-            <div className="relative group p-1 rounded-[2.2rem] bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-indigo-500/20 max-w-2xl mx-auto">
-              <UploadZone onSubmit={runPipeline} disabled={false} />
-            </div>
+        {/* PROCESSING — pure document scan animation, no text */}
+        {isBusy && (
+          <div style={{ maxWidth: 480, margin: '0 auto', padding: 'clamp(24px,5vw,48px) 16px' }}>
+            <div style={{
+              background: 'rgba(8,8,20,0.92)', backdropFilter: 'blur(32px)',
+              border: '1px solid rgba(16,185,129,0.18)', borderRadius: 24,
+              overflow: 'hidden', position: 'relative',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(16,185,129,0.08)',
+              animation: 'scale-in 0.3s ease-out both',
+              minHeight: 340,
+            }}>
+              {/* Full-frame document scanner — no text */}
+              <DocumentScanner />
 
-            <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto opacity-50">
-              {[
-                { label: 'Medicines', val: '250K+' },
-                { label: 'Confidence', val: '95%' },
-                { label: 'Time', val: '< 2s' },
-                { label: 'Model', val: 'GPT-4o' }
-              ].map(stat => (
-                <div key={stat.label} className="text-center">
-                  <div className="text-xl font-bold text-white display-font">{stat.val}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-slate-500">{stat.label}</div>
+              {/* Minimal bottom label */}
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                padding: '60px 24px 24px',
+                background: 'linear-gradient(to top, rgba(8,8,20,0.95) 0%, transparent 100%)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                zIndex: 10,
+              }}>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: 6, height: 6, borderRadius: '50%', background: '#10b981',
+                      animation: `dot-bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                    }} />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* PROCESSING ────────────────────────────── */}
-        {isProcessing && (
-          <div className="w-full flex flex-col items-center mt-20 animate-fade-in-up">
-            <div className="w-full max-w-3xl glass-panel p-10 rounded-3xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 animate-glow" />
-              <PipelineStepper currentStep={PHASE_STEPS[phase]} />
-              <div className="mt-12 text-center text-slate-400 text-sm mono-font flex items-center justify-center gap-3">
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce [animation-delay:0.2s]" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce [animation-delay:0.4s]" />
-                </div>
-                Analyzing data patterns...
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '0.04em' }}>
+                  Analyzing prescription…
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* ERROR ─────────────────────────────────── */}
+        {/* ERROR */}
         {phase === 'error' && (
-          <div className="w-full max-w-2xl animate-fade-in-up mt-10">
-            <div className="glass-panel border-red-500/20 p-10 rounded-3xl text-center">
-              <div className="w-20 h-20 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-4xl">⚠️</span>
-              </div>
-              <h3 className="text-2xl font-bold text-red-500 display-font mb-4">
-                Analysis Interrupted
+          <div style={{ maxWidth: 480, margin: '0 auto', padding: 'clamp(40px,8vw,80px) 16px', textAlign: 'center' }}>
+            <div style={{
+              background: 'rgba(8,8,20,0.9)', backdropFilter: 'blur(24px)',
+              border: '1px solid rgba(244,63,94,0.2)', borderRadius: 24,
+              padding: 'clamp(32px, 6vw, 56px)', animation: 'fade-up 0.3s ease-out both',
+            }}>
+              <div style={{ fontSize: 52, marginBottom: 20 }}>⚠️</div>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 22, color: '#fb7185', marginBottom: 12 }}>
+                Analysis Failed
               </h3>
-              <p className="text-slate-400 leading-relaxed mb-8 max-w-md mx-auto">{error}</p>
-              <button
-                onClick={reset}
-                className="btn-primary px-10 py-4 rounded-2xl text-base"
-              >
-                Back to Upload
-              </button>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.75, marginBottom: 32, maxWidth: 340, marginInline: 'auto' }}>{error}</p>
+              <button onClick={reset} style={{
+                background: 'linear-gradient(135deg, #10b981, #06b6d4)', color: '#fff',
+                borderRadius: 14, border: 'none', padding: '14px 32px',
+                fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
+              }}>Try Again</button>
             </div>
           </div>
         )}
 
-        {/* DONE — Show results ────────────────────── */}
+        {/* RESULTS */}
         {phase === 'done' && result && (
-          <div className="w-full max-w-6xl space-y-8 animate-fade-in-up">
-            <div className="flex flex-col md:flex-row gap-8 items-start">
+          <div style={{
+            maxWidth: 800, margin: '0 auto',
+            padding: 'clamp(24px, 4vw, 48px) clamp(16px, 4vw, 40px) 80px',
+          }}>
+            {/* Medical Wallet Modal */}
+            {walletOpen && <MedicalWallet result={result} onClose={() => setWallet(false)} />}
 
-              {/* Left Column: Debug & Text */}
-              <div className="w-full md:w-1/3 space-y-6">
-                <div className="glass-panel p-6 rounded-2xl">
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold mb-4">OCR Consensus</h4>
-                  <OCRPassDebugger ocrResult={result?.ocr_result} compact={true} />
-                </div>
-                <div className="glass-panel p-6 rounded-2xl">
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] text-indigo-400 font-bold mb-4">Prescription Text</h4>
-                  <PrescriptionTextViewer text={result?.ocr_result?.final_text} />
-                </div>
-                <div className="glass-panel p-6 rounded-2xl">
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-4">Raw Metadata</h4>
-                  <JsonInspector data={result} />
-                </div>
-              </div>
-
-              {/* Right Column: Matched List */}
-              <div className="flex-1 space-y-6">
-                {/* --- DIAGNOSIS BANNER --- */}
-                {result.medical_condition && (
-                  <div className="glass-panel p-8 rounded-3xl border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 via-indigo-500/5 to-transparent relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-full bg-cyan-500/5 blur-3xl rounded-full" />
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-2xl shadow-lg border border-cyan-500/20">
-                          🩺
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] mb-1.5 display-font">Prescription Diagnosis</p>
-                          <h2 className="text-2xl md:text-3xl font-black text-white display-font tracking-tight">
-                            {result.medical_condition}
-                          </h2>
-                        </div>
-                      </div>
-                      <div className="hidden lg:block px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-[9px] text-slate-500 mono-font uppercase tracking-widest text-right mb-1">AI Analytical Confidence</p>
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-cyan-500 w-[94%]" />
-                          </div>
-                          <span className="text-[10px] font-bold text-cyan-400">94%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-white display-font flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-sm">💊</span>
-                    Detected Medicines
-                  </h3>
-                  <span className="text-[10px] mono-font text-slate-500 bg-slate-800/50 px-3 py-1 rounded-full border border-white/5">
-                    Analyzed in {result.processing_time_ms}ms
-                  </span>
-                </div>
-
-                {result.extracted_medicines?.length > 0 ? (
-                  <div className="space-y-4">
-                    {result.extracted_medicines.map((ext, idx) => (
-                      <ResultCard key={idx} extraction={ext} index={idx} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="glass-panel py-20 rounded-3xl text-center border-dashed">
-                    <p className="text-slate-400 display-font font-semibold text-xl">
-                      No medicines detected
-                    </p>
-                    <p className="text-sm text-slate-600 mono-font mt-2">
-                      {result.suggestion || 'Try a clearer image or handwritten text.'}
-                    </p>
-                    <button onClick={reset} className="mt-8 text-cyan-400 text-sm font-bold border-b border-cyan-400/30 hover:border-cyan-400 transition-all">
-                      Try New Scan
-                    </button>
-                  </div>
-                )}
-              </div>
+            {/* Summary */}
+            <div style={{ marginBottom: 28 }}>
+              <SummaryCard result={result} />
             </div>
+
+            {/* Medicines header — wallet button is in the top nav */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+              <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#f0f4ff', letterSpacing: '-0.02em' }}>
+                Detected Medicines
+                <span style={{
+                  marginLeft: 10, display: 'inline-flex', alignItems: 'center',
+                  background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)',
+                  borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 700, color: '#10b981',
+                  verticalAlign: 'middle',
+                }}>{result.extracted_medicines?.length ?? 0}</span>
+              </h2>
+            </div>
+
+            {/* Cards */}
+            {result.extracted_medicines?.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {result.extracted_medicines.map((ext, i) => (
+                  <MedicineCard key={i} extraction={ext} index={i} />
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                padding: 'clamp(48px, 8vw, 80px) 24px', textAlign: 'center',
+                background: 'rgba(8,8,20,0.85)', backdropFilter: 'blur(20px)',
+                border: '2px dashed rgba(255,255,255,0.06)', borderRadius: 24,
+                animation: 'fade-up 0.35s ease-out both',
+              }}>
+                <div style={{ fontSize: 56, opacity: 0.15, marginBottom: 20 }}>💊</div>
+                <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 22, color: '#f0f4ff', marginBottom: 12 }}>
+                  No Medicines Detected
+                </h4>
+                <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', lineHeight: 1.75, maxWidth: 380, margin: '0 auto 32px' }}>
+                  {result.ocr_result?.final_text?.includes('[unclear]')
+                    ? "The image has unclear text. Try switching to 'Paste Text' mode."
+                    : "Try a clearer image or paste the prescription text directly."
+                  }
+                </p>
+                <button onClick={reset} style={{
+                  background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12,
+                  padding: '12px 28px', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                }}>Try New Scan</button>
+              </div>
+            )}
           </div>
         )}
       </main>
 
-      {/* ── Footer ──────────────────────────────── */}
-      <footer className="w-full border-t border-white/5 py-8 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[10px] text-slate-500 mono-font uppercase tracking-widest">
-            MedMap AI Framework v2.0 — Secure Medical Processing
+      {/* ── FOOTER ── */}
+      <footer style={{
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+        padding: '18px 0', position: 'relative', zIndex: 10,
+      }}>
+        <div style={{
+          maxWidth: 1200, margin: '0 auto',
+          padding: '0 clamp(16px, 4vw, 40px)',
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+        }}>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>
+            MedMap AI v2.0 · For educational use only
           </p>
-          <div className="flex gap-6">
-            {['Privacy', 'Security', 'Models'].map(l => (
-              <a key={l} href="#" className="text-[10px] text-slate-600 hover:text-slate-400 mono-font transition-colors">{l}</a>
+          <div style={{ display: 'flex', gap: 20 }}>
+            {['Privacy', 'Security', 'API'].map(l => (
+              <a key={l} href="#" style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)', textDecoration: 'none' }}>{l}</a>
             ))}
           </div>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function NavBtn({ children, onClick, active }) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: active ? 'rgba(16,185,129,0.1)' : 'none',
+      border: active ? '1px solid rgba(16,185,129,0.2)' : '1px solid transparent',
+      cursor: 'pointer',
+      color: active ? '#6ee7b7' : 'rgba(255,255,255,0.4)',
+      padding: '7px 13px', borderRadius: 10,
+      fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13,
+      transition: 'color 0.15s, background 0.15s',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.color = '#f0f4ff'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+      onMouseLeave={e => { e.currentTarget.style.color = active ? '#6ee7b7' : 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = active ? 'rgba(16,185,129,0.1)' : 'none'; }}
+    >{children}</button>
+  );
 }

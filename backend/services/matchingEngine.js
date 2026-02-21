@@ -61,11 +61,14 @@ function applyValidationRules(extraction, dbRecord, rawScore) {
         }
     }
 
-    // RULE: Form Mismatch
+    // RULE: Form Mismatch — add warning only, do NOT penalize score
+    // (OCR may read 'Tab' vs DB has 'Tablet' — both are the same medicine)
     if (extraction.form && dbRecord.form) {
-        if (extraction.form.toLowerCase() !== dbRecord.form.toLowerCase()) {
+        const extForm = extraction.form.toLowerCase().trim();
+        const dbForm = dbRecord.form.toLowerCase().trim();
+        if (!extForm.includes(dbForm.slice(0, 3)) && !dbForm.includes(extForm.slice(0, 3))) {
             warnings.push('FORM_MISMATCH');
-            finalScore *= 0.60;
+            // No score penalty — form normalization is unreliable
         }
     }
 
@@ -85,15 +88,21 @@ async function exactMatch(extraction) {
         .select('*')
         .ilike('brand_name', searchName);
 
-    if (extraction.form) {
-        query = query.ilike('form', extraction.form);
-    }
+    // NOTE: do NOT filter by form — form strings in DB may differ ('Tablet' vs 'Tab' etc)
+    // Just do a loose name match and validate form separately
 
-    const { data, error } = await query.limit(1);
+    const { data, error } = await query.limit(3);
     if (error || !data || data.length === 0) return null;
 
+    // If form given, try to find a matching-form record first; fall back to first
+    let chosen = data[0];
+    if (extraction.form && data.length > 1) {
+        const formMatch = data.find(r => r.form?.toLowerCase().includes(extraction.form.toLowerCase().slice(0, 3)));
+        if (formMatch) chosen = formMatch;
+    }
+
     return {
-        record: data[0],
+        record: chosen,
         method: 'exact_match',
         rawScore: 100,
     };
@@ -115,7 +124,7 @@ async function fuzzyMatch(extraction) {
     if (error || !data || data.length === 0) return null;
 
     const best = data[0];
-    if (best.trgm_score > 0.25) {
+    if (best.trgm_score > 0.18) {  // lowered from 0.25 — catch more OCR variations
         return {
             record: best,
             method: 'fuzzy_match',
@@ -150,7 +159,7 @@ async function vectorMatch(extraction) {
     if (error || !data || data.length === 0) return null;
 
     const best = data[0];
-    if (best.combined_score > 0.25) {
+    if (best.combined_score > 0.20) {  // lowered from 0.25 — allow broader AI-assisted matches
         return {
             record: best,
             method: 'vector_similarity',
