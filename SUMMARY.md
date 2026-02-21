@@ -8,26 +8,29 @@ This document summarizes the progress made, provides setup instructions for loca
 
 ### 1. **Massive Data Integration**
 - **250k+ Medicine Database**: Successfully imported a comprehensive dataset of ~254,000 Indian medicines into Supabase.
-- **AI Vector Search**: Initiated a background generation of 150,000+ vector embeddings using OpenAI (`text-embedding-3-small`) to enable semantic matching.
+- **AI Vector Search**: Configured background generation of vector embeddings using OpenAI (`text-embedding-3-small`) to enable high-accuracy semantic matching.
 
-### 2. **Intelligence Pipeline (GPT-4o)**
-- **Vision Integration**: Implemented a high-accuracy (95%) GPT-4o Vision fallback for analyzing messy or handwritten prescriptions.
-- **JSON Mode NER**: Refactored the NLP extraction to use OpenAI's JSON Mode, ensuring reliable medicine name parsing.
-- **Hybrid Matching**: Tuned the matching search (Exact → Fuzzy → Vector) with an optimized threshold of 0.25 to catch typos and OCR errors.
+### 2. **Intelligence Pipeline (V2.0)**
+- **4-Stage Hybrid Matching**: Implemented a cascading search engine:
+  - **Stage 1 & 2**: Exact and Fuzzy Trigram matching.
+  - **Stage 3**: Semantic Vector search.
+  - **Stage 4 (Web Fallback)**: Real-time search across **OpenFDA**, **RxNorm (NLM)**, and **OpenAI Knowledge** for medicines missing from the local registry.
+- **AI-Powered Usage Descriptions**: Integrated real-time GPT-4o enrichment to provide a concise 1-line "Usage & Indication" for every matched medicine.
+- **OCR Consensus**: 5-pass preprocessing + Tesseract consensus logic with GPT-4o Vision fallback for handwritten text.
 
-### 3. **Premium UI/UX Revamp**
-- **Modern Aesthetic**: Replaced the utility interface with a high-fidelity glassmorphic design.
-- **Improved UX**: Added a "Pipeline Stepper" to visualize AI progress and redesigned the results display for better readability.
-- **Brand Identity**: Updated typography to `Outfit` and `Inter` for a professional medical dashboard feel.
+### 3. **Premium UI/UX System**
+- **Advanced Result Provenance**: Added clear visual badges/labels indicating exactly where data came from (e.g., "INTERNAL_DB", "Web Source: OpenFDA").
+- **Glassmorphic Design**: Clean, high-fidelity dark mode with fluid animations and responsive mobile layouts.
+- **Pipeline Stepper**: Real-time tracking of AI progress (OCR → Extraction → Verification).
 
 ---
 
 ## 🚀 How to Run Locally
 
 ### 1. Prerequisites
-- **Node.js**: v18 or later.
-- **Supabase Account**: For the database and vector extensions.
-- **OpenAI API Key**: For Vision, NLP, and Embeddings.
+- **Node.js**: v25 or later.
+- **Supabase Account**: With `pgvector` and `pg_trgm` extensions enabled.
+- **OpenAI API Key**: For Vision, NLP, Embeddings, and Usage Descriptions.
 
 ### 2. Environment Setup
 Create a `.env` file in the `backend/` directory:
@@ -37,42 +40,22 @@ SUPABASE_URL=your_project_url
 SUPABASE_SERVICE_KEY=your_service_role_key
 ```
 
-### 3. Installation
-```bash
-# In the root directory:
-cd backend && npm install
-cd ../frontend && npm install
-```
-
-### 4. Running the App
-Open two terminal windows:
-
-**Terminal 1 (Backend)**:
-```bash
-cd backend
-npm run dev
-```
-
-**Terminal 2 (Frontend)**:
-```bash
-cd frontend
-npm run dev
-```
-*Access the UI at `http://localhost:5173`.*
+### 3. Running the App
+1.  **Backend**: `cd backend && npm run dev` (Port 3001)
+2.  **Frontend**: `cd frontend && npm run dev` (Port 5173)
 
 ---
 
-## ⏭️ What Should Happen Next (Roadmap)
+## ⏭️ Next Steps (Roadmap)
 
-### Phase 1: Search Optimization (Short Term)
-- **Embedding Completion**: Let the background process reach 150k-250k records for maximum search intelligence.
-- **Advanced Batching**: Further optimize the `generateEmbeddings.js` script to handle larger parallel batches if the OpenAI rate limit allows.
+### Phase 1: Performance & Scale
+- **Batch Embedding Completion**: Finish generating embeddings for the full 250k dataset (currently ~150k indexed).
+- **Search Latency**: Implement caching for frequent web-fallback results to reduce OpenAI/FDA API calls.
 
-### Phase 2: Feature Expansion (Medium Term)
-- **User Accounts**: Implement authentication via Supabase Auth so doctors/patients can save prescriptions.
-- **Generic Alternatives**: Link the "Generic Name" field to suggest cheaper alternatives for matched brand names.
-- **Mobile App**: Wrap the current responsive web UI into a Capacitor or React Native container for iOS/Android use.
+### Phase 2: Clinical Safety
+- **Dosage Verification**: Use AI to flag unusual dosages that fall outside standard clinical guidelines (Pediatric vs Adult).
+- **Intercultural Generic Mapping**: Deepen the mapping between brand names and standardized generic formulations for international markets.
 
-### Phase 3: Intelligence & Safety (Long Term)
-- **Drug Interaction Check**: Integrate an external API (like OpenFDA) to warn users about conflicting medicines in a single prescription.
-- **Dosage Verification**: Use AI to verify if the extracted dosage matches standard medical guidelines.
+### Phase 3: Deployment
+- **Cloud Infrastructure**: Deploy the backend via Docker/Vercel and frontend via Netlify/Vercel.
+- **Audit Logs**: Finalize the Supabase audit trail to track every AI decision and user feedback loop.
