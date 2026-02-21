@@ -267,12 +267,6 @@ export default function App() {
       </main>
 
       {/* ── Footer ──────────────────────────────── */}
-<<<<<<< HEAD
-      <footer className="w-full border-t border-slate-800/40 py-4">
-        <p className="text-center text-[10px] text-slate-600 mono-font">
-          MedMap AI v1.0.0 — Multi-Pass OCR · GPT-4o NER · Hybrid Matching
-        </p>
-=======
       <footer className="w-full border-t border-white/5 py-8 relative z-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[10px] text-slate-500 mono-font uppercase tracking-widest">
@@ -284,7 +278,6 @@ export default function App() {
             ))}
           </div>
         </div>
->>>>>>> dca4710 (feat(frontend): integrate prescription text viewer and enhance dashboard results layout)
       </footer>
     </div>
   );
