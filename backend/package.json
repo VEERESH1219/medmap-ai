@@ -1,0 +1,35 @@
+{
+  "name": "medmap-ai-backend",
+  "version": "1.0.0",
+  "description": "MedMap AI — Intelligent Medicine Extraction and Matching System (Backend)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "import": "node scripts/importMedicines.js",
+    "embeddings": "node scripts/generateEmbeddings.js"
+  },
+  "keywords": [
+    "medicine",
+    "ocr",
+    "nlp",
+    "prescription"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@supabase/supabase-js": "^2.97.0",
+    "cors": "^2.8.6",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "openai": "^6.22.0",
+    "sharp": "^0.34.5",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
