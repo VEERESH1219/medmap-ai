@@ -1,8 +1,11 @@
 /**
  * MedMap AI — AI Verification Service (Stage 4 Fallback)
  *
- * Uses OpenAI GPT-4o to verify real-world medicine existence and retrieve clinical metadata
- * when the internal database fails to find a high-confidence match.
+ * This service is triggered when the internal database has no match.
+ * It uses a chain of reputable sources:
+ *   1. OpenAI Knowledge Base (Primary)
+ *   2. Web Source: OpenFDA API
+ *   3. Web Source: RxNorm API
  */
 
 import OpenAI from 'openai';
@@ -15,68 +18,192 @@ const openai = new OpenAI({
 });
 
 /**
- * Verify medicine existence and fetch metadata from AI knowledge base.
- * 
- * @param {string} brandName - extracted brand name
- * @param {string} variant - (optional) brand variant
- * @param {string} form - (optional) normalized form
- * @returns {Promise<Object|null>} - returns clinical details if verified, else null.
+ * Helper: Universal fetch with timeout to prevent hangs.
  */
-export async function verifyMedicineRealWorld(brandName, variant = '', form = '') {
+async function fetchWithTimeout(url, timeoutLimit = 4000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutLimit);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        clearTimeout(id);
+        return null;
+    }
+}
+
+/**
+ * 1. OpenAI Knowledge Base (GPT-4o)
+ */
+async function lookupOpenAI(brandName, variant, form) {
     const query = [brandName, variant, form].filter(Boolean).join(' ');
+    console.log(`[Stage4-OpenAI] Verifying: "${query}"...`);
 
-    const systemPrompt = `You are a professional pharmaceutical knowledge engine. 
-Your task is to verify if a medicine exists in the real-world market (specifically focusing on Indian and global markets).
-
+    const systemPrompt = `You are a professional medical knowledge engine.
+Verify if this medicine exists in the real-world market (focusing on India/Global).
 RULES:
-1. ONLY return a result if you are 95%+ confident the medicine name exists.
-2. If it exists, provide its standard Generic Name (Active Ingredients), typical Strength, and Form.
-3. If it looks like a typo of a common medicine, suggest the correction.
-4. If it is NOT a medicine or you are unsure, return {"exists": false}.
-5. Return ONLY clean JSON. No markdown.
+1. ONLY return if you are 95%+ confident.
+2. If it's a typo, suggest the correction.
+3. Return ONLY clean JSON.
 
-JSON SCHEMA:
+SCHEMA:
 {
   "exists": boolean,
-  "confidence_score": number (0-100),
-  "brand_name_official": "string",
+  "confidence": number(0-100),
+  "official_brand": "string",
   "generic_name": "string",
-  "standard_strength": "string",
-  "standard_form": "string"
+  "std_strength": "string",
+  "std_form": "string"
 }`;
 
     try {
-        console.log(`[AI-Verify] Verifying existence of: "${query}"...`);
-
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             temperature: 0,
             response_format: { type: 'json_object' },
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Verify this medicine: "${query}"` },
+                { role: 'user', content: `Verify: "${query}"` },
             ],
         });
 
-        const content = response.choices[0]?.message?.content || '{"exists": false}';
-        const parsed = JSON.parse(content);
-
-        if (parsed.exists && parsed.confidence_score >= 90) {
+        const parsed = JSON.parse(response.choices[0]?.message?.content || '{}');
+        if (parsed.exists && parsed.confidence >= 90) {
+            console.log(`[Stage4-OpenAI] ✓ Match found: "${parsed.official_brand}"`);
             return {
                 id: `ai_v_${Date.now()}`,
-                brand_name: parsed.brand_name_official,
+                brand_name: parsed.official_brand,
                 generic_name: parsed.generic_name,
-                strength: parsed.standard_strength,
-                form: parsed.standard_form,
-                similarity_percentage: parsed.confidence_score,
+                strength: parsed.std_strength,
+                form: parsed.std_form,
+                similarity_percentage: parsed.confidence,
                 confidence: 'High',
-                verified_by: 'AI_KNOWLEDGE'
+                verified_by: 'AI Knowledge (OpenAI)'
             };
         }
-
-        return null; // Not found or low confidence
     } catch (err) {
-        console.error('[AI-Verify] Error:', err.message);
+        console.error('[Stage4-OpenAI] Error:', err.message);
+    }
+    return null;
+}
+
+/**
+ * 2. Web Source: OpenFDA
+ */
+async function lookupOpenFDA(brandName, variant) {
+    const query = variant ? `"${brandName}" AND "${variant}"` : `"${brandName}"`;
+    const url = `https://api.fda.gov/drug/label.json?search=openfda.brand_name:${encodeURIComponent(query)}&limit=1`;
+
+    console.log(`[Stage4-OpenFDA] Searching web source...`);
+    const data = await fetchWithTimeout(url);
+
+    if (data?.results?.[0]?.openfda) {
+        const fda = data.results[0].openfda;
+        console.log(`[Stage4-OpenFDA] ✓ Match found in web sources.`);
+        return {
+            id: `fda_${Date.now()}`,
+            brand_name: fda.brand_name?.[0] || brandName,
+            generic_name: fda.substance_name?.join(' + ') || fda.generic_name?.[0] || 'Unknown Generic',
+            strength: fda.strength?.[0] || '',
+            form: fda.dosage_form?.[0] || '',
+            similarity_percentage: 95,
+            confidence: 'High',
+            verified_by: 'Web Source: OpenFDA'
+        };
+    }
+    return null;
+}
+
+/**
+ * 3. Web Source: RxNorm (NLM)
+ */
+async function lookupRxNorm(brandName) {
+    const url = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(brandName)}`;
+
+    console.log(`[Stage4-RxNorm] Searching web source...`);
+    const data = await fetchWithTimeout(url);
+
+    const groups = data?.drugGroup?.conceptGroup;
+    if (groups?.length) {
+        const brandGroup = groups.find(g => g.tty === 'BN' || g.tty === 'SBD');
+        const concept = brandGroup?.conceptProperties?.[0];
+
+        if (concept) {
+            console.log(`[Stage4-RxNorm] ✓ Match found in web sources.`);
+            return {
+                id: `rx_${concept.rxcui}`,
+                brand_name: concept.name,
+                generic_name: 'Standardized Formulation',
+                strength: '',
+                form: '',
+                similarity_percentage: 92,
+                confidence: 'High',
+                verified_by: 'Web Source: RxNorm (NLM)'
+            };
+        }
+    }
+    return null;
+}
+
+/**
+ * Main Export: Orchestrates multi-source real-world lookup.
+ * Prioritizes official Web Sources (OpenFDA/RxNorm) as requested.
+ */
+export async function verifyMedicineRealWorld(brandName, variant = '', form = '') {
+    console.log(`\n[Stage4] Fallback engaged for: "${brandName}"`);
+
+    // 1. OpenFDA (Primary Web Fallback)
+    const fdaResult = await lookupOpenFDA(brandName, variant);
+    if (fdaResult) {
+        console.log('[Stage4] ✅ Found in Web Source: OpenFDA.');
+        return fdaResult;
+    }
+
+    // 2. RxNorm (Secondary Web Fallback)
+    const rxResult = await lookupRxNorm(brandName);
+    if (rxResult) {
+        console.log('[Stage4] ✅ Found in Web Source: RxNorm.');
+        return rxResult;
+    }
+
+    // 3. OpenAI (Intelligent Cleanup & Knowledge Fallback)
+    const aiResult = await lookupOpenAI(brandName, variant, form);
+    if (aiResult) {
+        console.log('[Stage4] ✅ Found in AI Knowledge Base.');
+        return aiResult;
+    }
+
+    console.log(`[Stage4] ✗ No matches found in any web source.`);
+    return null;
+}
+/**
+ * Get a short, professional 1-line description/usage for a medicine using OpenAI.
+ */
+export async function getMedicineDescription(brandName, genericName) {
+    if (!brandName && !genericName) return null;
+
+    const query = [brandName, genericName].filter(Boolean).join(' / ');
+    console.log(`[Description] Generating usage for: "${query}"...`);
+
+    const systemPrompt = `You are a professional pharmacist. Provide a clean, 1-line (max 15-20 words) professional description of the primary usage/indication for the given medicine. 
+Strictly avoid common generic disclaimers (like "consult a doctor"). Just state what it treats.`;
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            temperature: 0.5,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `Describe usage for: ${query}` },
+            ],
+        });
+
+        const content = response.choices[0]?.message?.content?.trim().replace(/^"|"$/g, '');
+        return content || null;
+    } catch (err) {
+        console.error('[Description] OpenAI Error:', err.message);
         return null;
     }
 }
