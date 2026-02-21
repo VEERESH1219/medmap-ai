@@ -78,7 +78,7 @@ function buildStrength(comp1, comp2) {
 }
 
 async function main() {
-    const csvPath = process.argv[2] || resolve(process.cwd(), '..', 'indian_medicines.csv');
+    const csvPath = process.argv[2] || resolve(process.cwd(), '..', 'FInal medical data (1).csv');
 
     console.log(`\n📁 Reading CSV from: ${csvPath}\n`);
 
@@ -93,14 +93,11 @@ async function main() {
     );
 
     for await (const row of parser) {
-        // Skip discontinued medicines
-        if (row.Is_discontinued === 'TRUE' || row.Is_discontinued === 'true') continue;
-
-        // Skip non-allopathy
-        if (row.type && row.type.toLowerCase() !== 'allopathy') continue;
+        // Skip records without a name
+        if (!row.name) continue;
 
         const brandName = extractBrandName(row.name || '');
-        const form = extractForm(row.name || '', row.pack_size_label || '');
+        const form = extractForm(row.name || '', ''); // Form is now just in the name
         const genericName = buildGenericName(
             row.short_composition1 || '',
             row.short_composition2 || ''
