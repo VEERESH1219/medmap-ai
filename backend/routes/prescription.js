@@ -50,7 +50,7 @@ router.post('/process-prescription', async (req, res) => {
         }
 
         // ── Step 2: NLP Extraction
-        const extractions = await runNLPExtraction(ocrResult.final_text);
+        const { medicines: extractions, medical_condition } = await runNLPExtraction(ocrResult.final_text);
 
         if (extractions.length === 0) {
             const processingTime = Date.now() - startTime;
@@ -60,6 +60,7 @@ router.post('/process-prescription', async (req, res) => {
                 status: 'success',
                 processing_time_ms: processingTime,
                 ocr_result: ocrResult,
+                medical_condition: medical_condition,
                 extracted_medicines: []
             });
         }
@@ -75,6 +76,7 @@ router.post('/process-prescription', async (req, res) => {
             status: 'success',
             processing_time_ms: processingTime,
             ocr_result: ocrResult,
+            medical_condition: medical_condition,
             extracted_medicines: results.map(r => ({
                 raw_input: r.raw_input,
                 structured_data: r.structured_data,
