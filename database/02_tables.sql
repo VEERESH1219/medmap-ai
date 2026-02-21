@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════
--- MedMap AI — 02: Create Tables
+-- VAIDYADRISHTI AI — 02: Create Tables
 -- ═══════════════════════════════════════════════════════
 
 -- Medicines master table

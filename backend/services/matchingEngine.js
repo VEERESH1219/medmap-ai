@@ -1,5 +1,5 @@
 /**
- * MedMap AI — Strict 3-Stage Hybrid Matching Engine
+ * VAIDYADRISHTI AI — Strict 3-Stage Hybrid Matching Engine
  *
  * STAGE 1: Exact match (brand_name + form)
  * STAGE 2: Fuzzy match (trigram similarity)

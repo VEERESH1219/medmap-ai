@@ -1,5 +1,5 @@
 /**
- * MedMap AI — Express Server Entry Point
+ * VAIDYADRISHTI AI — Express Server Entry Point
  *
  * CORS-enabled Express server with JSON body parsing (25MB limit),
  * health check endpoint, and prescription processing route.
@@ -61,7 +61,7 @@ app.use((err, req, res, next) => {
 // ── Start Server ──────────────────────────────────
 app.listen(PORT, () => {
     console.log(`\n  ╔══════════════════════════════════════╗`);
-    console.log(`  ║  🧬 MedMap AI Server v1.0.0          ║`);
+    console.log(`  ║  🧬 VAIDYADRISHTI AI Server v1.0.0          ║`);
     console.log(`  ║  Port: ${PORT}                          ║`);
     console.log(`  ║  Health: http://localhost:${PORT}/health ║`);
     console.log(`  ╚══════════════════════════════════════╝\n`);

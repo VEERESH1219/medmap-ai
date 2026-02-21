@@ -1,5 +1,5 @@
 /**
- * MedMap AI — NLP Extraction Service
+ * VAIDYADRISHTI AI — NLP Extraction Service
  *
  * Uses OpenAI GPT-4o for clinical Named Entity Recognition.
  * Strictly follows extraction rules for brand names, variants, and dosage.

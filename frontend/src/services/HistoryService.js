@@ -1,10 +1,10 @@
 /**
- * MedMap AI — History Service
+ * VAIDYADRISHTI AI — History Service
  * Stores every scan to localStorage, including duplicates.
  * Always stores newest first.
  */
 
-const HISTORY_KEY = 'medmap_history';
+const HISTORY_KEY = 'vaidyadrishti_history';
 const MAX_HISTORY = 50; // raised limit, duplicates allowed
 
 export function getHistory() {

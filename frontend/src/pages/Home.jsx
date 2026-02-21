@@ -45,17 +45,6 @@ export default function Home({ onSubmit, disabled }) {
 
                 {/* ── Hero ── */}
                 <div style={{ textAlign: 'center', marginBottom: 'clamp(36px, 6vw, 60px)', animation: 'fade-up 0.4s ease-out both' }}>
-                    {/* Eyebrow badge */}
-                    <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.18)',
-                        borderRadius: 999, padding: '6px 18px', marginBottom: 28,
-                    }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse-dot 1.6s ease-in-out infinite' }} />
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981', letterSpacing: '0.08em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                            AI-Powered · GPT-4o Vision · 250K+ Medicines
-                        </span>
-                    </div>
 
                     <h1 style={{
                         fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -70,7 +59,7 @@ export default function Home({ onSubmit, disabled }) {
                     </h1>
 
                     <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'rgba(255,255,255,0.45)', maxWidth: 440, margin: '0 auto', lineHeight: 1.75 }}>
-                        Upload any handwritten or printed prescription — MedMap AI reads, identifies, and verifies every medicine in seconds.
+                        Upload any handwritten or printed prescription — VAIDYADRISHTI AI reads, identifies, and verifies every medicine in seconds.
                     </p>
                 </div>
 
@@ -235,26 +224,6 @@ export default function Home({ onSubmit, disabled }) {
                     </div>
                 </div>
 
-                {/* ── Stats row ── */}
-                <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
-                    marginTop: 16, animation: 'fade-up 0.4s ease-out 0.2s both',
-                }}>
-                    {[
-                        { v: '250K+', l: 'Medicines', c: '#10b981' },
-                        { v: 'GPT-4o', l: 'Vision AI', c: '#10b981' },
-                        { v: '5-Pass', l: 'OCR Engine', c: '#06b6d4' },
-                        { v: '<5s', l: 'Avg Speed', c: '#f59e0b' },
-                    ].map(s => (
-                        <div key={s.l} style={{
-                            padding: '14px 10px', borderRadius: 14, textAlign: 'center',
-                            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-                        }}>
-                            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 18, color: s.c, marginBottom: 4 }}>{s.v}</div>
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>{s.l}</div>
-                        </div>
-                    ))}
-                </div>
             </div>
         </div>
     );

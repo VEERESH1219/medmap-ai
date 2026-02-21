@@ -1,5 +1,5 @@
 /**
- * MedMap AI — Multi-Pass OCR Engine
+ * VAIDYADRISHTI AI — Multi-Pass OCR Engine
  *
  * Core innovation: runs 5 parallel Tesseract.js passes with different
  * image preprocessing variants, then builds consensus from all results.

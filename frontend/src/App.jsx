@@ -86,56 +86,57 @@ export default function App() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900, fontSize: 18, color: '#fff',
               boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
-            }}>M</div>
+            }}>V</div>
             <div>
               <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 15, color: '#f0f4ff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                MedMap <span style={{ color: '#10b981' }}>AI</span>
+                VAIDYADRISHTI <span style={{ color: '#10b981' }}>AI</span>
               </div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+              <div className="hidden sm:block" style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
                 Intelligent Analysis
               </div>
             </div>
           </button>
 
-          {/* Nav — always visible on all screens */}
-          <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <NavBtn onClick={reset} active={phase === 'idle' || phase === 'done'}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-              </svg>
-              Dashboard
-            </NavBtn>
-            <NavBtn onClick={() => setDrawer(true)}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
-              History
-            </NavBtn>
-          </nav>
+          {/* Right Group: Nav + CTA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <NavBtn onClick={reset} active={phase === 'idle' || phase === 'done'}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                </svg>
+                <span className="hidden sm:inline">Dashboard</span>
+              </NavBtn>
+              <NavBtn onClick={() => setDrawer(true)}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                </svg>
+                <span className="hidden sm:inline">History</span>
+              </NavBtn>
+            </nav>
 
-          {/* Right CTA */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {phase === 'done' && result && (
-              <button onClick={() => setWallet(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                background: 'rgba(16,185,129,0.12)', color: '#6ee7b7',
-                border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10,
-                padding: '8px 16px', fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}>💊 Wallet</button>
-            )}
-            {(phase === 'done' || phase === 'error') && (
-              <button onClick={reset} style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
-                color: '#fff', borderRadius: 10, border: 'none',
-                padding: '8px 18px', fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 800, fontSize: 12, cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
-              }}>+ New Scan</button>
-            )}
+            <div style={{ display: 'flex', gap: 6 }}>
+              {phase === 'done' && result && (
+                <button onClick={() => setWallet(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(16,185,129,0.12)', color: '#6ee7b7',
+                  border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10,
+                  padding: '8px 12px', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}>💊 <span className="hidden sm:inline">Wallet</span></button>
+              )}
+              {(phase === 'done' || phase === 'error') && (
+                <button onClick={reset} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                  color: '#fff', borderRadius: 10, border: 'none',
+                  padding: '8px 14px', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 800, fontSize: 12, cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+                }}>+ <span className="hidden sm:inline">New Scan</span></button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -270,26 +271,6 @@ export default function App() {
         )}
       </main>
 
-      {/* ── FOOTER ── */}
-      <footer style={{
-        borderTop: '1px solid rgba(255,255,255,0.04)',
-        padding: '18px 0', position: 'relative', zIndex: 10,
-      }}>
-        <div style={{
-          maxWidth: 1200, margin: '0 auto',
-          padding: '0 clamp(16px, 4vw, 40px)',
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-        }}>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>
-            MedMap AI v2.0 · For educational use only
-          </p>
-          <div style={{ display: 'flex', gap: 20 }}>
-            {['Privacy', 'Security', 'API'].map(l => (
-              <a key={l} href="#" style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)', textDecoration: 'none' }}>{l}</a>
-            ))}
-          </div>
-        </div>
-      </footer>
     </>
   );
 }

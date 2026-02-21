@@ -1,7 +1,7 @@
 {
   "name": "medmap-ai-backend",
   "version": "1.0.0",
-  "description": "MedMap AI — Intelligent Medicine Extraction and Matching System (Backend)",
+  "description": "VAIDYADRISHTI AI — Intelligent Medicine Extraction and Matching System (Backend)",
   "type": "module",
   "main": "server.js",
   "scripts": {

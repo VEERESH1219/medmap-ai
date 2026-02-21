@@ -1,6 +1,6 @@
-# 🧬 MedMap AI — Intelligent Medicine Extraction & Matching System
+# 🧬 VAIDYADRISHTI AI — Intelligent Medicine Extraction & Matching System
 
-MedMap AI accepts prescription images — including messy, overlapping, or handwritten text — or raw medical text, extracts structured medicine data, and maps it to a trusted internal medicine database using a multi-stage hybrid matching engine. It returns structured JSON with similarity percentages, confidence scores, and AI-powered usage descriptions.
+Upload any handwritten or printed prescription — VAIDYADRISHTI AI reads, identifies, and verifies every medicine in seconds. It extracts structured medicine data, and maps it to a trusted internal medicine database using a multi-stage hybrid matching engine. It returns structured JSON with similarity percentages, confidence scores, and AI-powered usage descriptions.
 
 ## 🚀 Recently Completed Milestones
 
