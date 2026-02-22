@@ -24,7 +24,24 @@ app.use((req, res, next) => {
 
 app.use(
     cors({
-        origin: true, // Reflect request origin (effectively allowing any origin that sends the header)
+        origin: (origin, callback) => {
+            // Sanitize origin: remove non-ASCII characters
+            const sanitizedOrigin = (origin || '').replace(/[^\x20-\x7E]/g, '');
+
+            const allowedOrigins = [
+                process.env.FRONTEND_URL,
+                'https://vaidyadrishti-ai.vercel.app',
+                'http://localhost:5173',
+                'http://localhost:3000'
+            ].map(o => (o || '').replace(/[^\x20-\x7E]/g, ''));
+
+            if (!origin || allowedOrigins.includes(sanitizedOrigin)) {
+                callback(null, true);
+            } else {
+                console.warn(`[CORS] Blocked origin: ${sanitizedOrigin}`);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
