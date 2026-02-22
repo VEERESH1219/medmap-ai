@@ -25,13 +25,22 @@ export default function App() {
       setPhase('preprocessing'); await sleep(500);
       setPhase('ocr');
 
-      const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-      const TARGET_URL = `${API_BASE}/api/process-prescription`;
-      console.log(`[App] Calling API: ${TARGET_URL} (VITE_API_URL: ${import.meta.env.VITE_API_URL})`);
+      // ── Sanitization ──
+      // Strips non-ASCII characters (like invisible ZWNJ \u200C) and whitespace
+      const sanitize = (str) => (str || '').replace(/[^\x20-\x7E]/g, '').trim();
+
+      const rawBase = import.meta.env.VITE_API_URL || '';
+      const API_BASE = sanitize(rawBase).replace(/\/$/, '');
+      const TARGET_URL = `${API_BASE}/api/process_prescription`;
+
+      console.log(`[App] Calling API: ${TARGET_URL} (Original: ${rawBase})`);
 
       const res = await fetch(TARGET_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ ...input, options: { ocr_passes: 5, min_consensus: 3 } }),
       });
 
