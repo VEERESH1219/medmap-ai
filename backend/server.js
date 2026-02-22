@@ -12,30 +12,39 @@ import prescriptionRouter from './routes/prescription.js';
 
 dotenv.config();
 
+// ── Global Sanitization ──────────────────────────
+// Clean environment variables at startup (removes hidden Unicode)
+Object.keys(process.env).forEach(key => {
+    if (typeof process.env[key] === 'string') {
+        process.env[key] = process.env[key].replace(/[^\x20-\x7E]/g, '').trim();
+    }
+});
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Middleware ─────────────────────────────────────
-// ── Middleware ─────────────────────────────────────
 // Enhanced Request Logging
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-    console.log(`  - Origin: ${req.headers.origin}`);
-    console.log(`  - UA: ${req.headers['user-agent']}`);
+    const origin = (req.headers.origin || '').replace(/[^\x20-\x7E]/g, '');
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} | Origin: ${origin}`);
     next();
 });
 
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            // Always allow for debugging, echo origin back
-            callback(null, true);
-        },
-        methods: ['GET', 'POST', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-        credentials: true,
-    })
-);
+// Hyper-Robust CORS Configuration
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Echo back any origin, but ensures we call back with true
+        callback(null, true);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    credentials: true,
+    maxAge: 86400
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Explicitly handle ALL preflights
 
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
@@ -45,7 +54,7 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        version: '1.0.2',
+        version: '1.0.3', // Bumped version
         env: {
             frontend_url: process.env.FRONTEND_URL ? 'set' : 'not set',
             supabase_url: process.env.SUPABASE_URL ? 'set' : 'not set'
@@ -58,6 +67,10 @@ app.use('/api', prescriptionRouter);
 
 // ── 404 Handler ───────────────────────────────────
 app.use((req, res) => {
+    const origin = (req.headers.origin || '').replace(/[^\x20-\x7E]/g, '');
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
     console.warn(`[404] ${req.method} ${req.path}`);
     res.status(404).json({
         status: 'error',
@@ -70,9 +83,8 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('[Server Error Handled]:', err);
 
-    // Robust CORS header fallback
-    const origin = req.headers.origin || 'https://vaidyadrishti-ai.vercel.app';
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    const origin = (req.headers.origin || '').replace(/[^\x20-\x7E]/g, '');
+    res.setHeader('Access-Control-Allow-Origin', origin || 'https://vaidyadrishti-ai.vercel.app');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     res.status(500).json({
@@ -85,7 +97,7 @@ app.use((err, req, res, next) => {
 // ── Start Server ──────────────────────────────────
 app.listen(PORT, () => {
     console.log(`\n  ╔══════════════════════════════════════╗`);
-    console.log(`  ║  🧬 VAIDYADRISHTI AI Server v1.0.2          ║`); // Updated version
+    console.log(`  ║  🧬 VAIDYADRISHTI AI Server v1.0.3          ║`);
     console.log(`  ║  Port: ${PORT}                          ║`);
     console.log(`  ║  Status: LIVE & HEALTHY              ║`);
     console.log(`  ╚══════════════════════════════════════╝\n`);
