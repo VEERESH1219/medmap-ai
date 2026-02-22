@@ -16,25 +16,18 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Middleware ─────────────────────────────────────
-const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://vaidyadrishti-ai.vercel.app'
-].filter(Boolean);
+// Log requests for debugging
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+    next();
+});
 
 app.use(
     cors({
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
+        origin: true, // Reflect request origin (effectively allowing any origin that sends the header)
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true
+        credentials: true,
     })
 );
 
@@ -46,7 +39,7 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        version: '1.0.0',
+        version: '1.0.1', // Bumped version
     });
 });
 
@@ -65,6 +58,11 @@ app.use((req, res) => {
 // ── Global Error Handler ──────────────────────────
 app.use((err, req, res, next) => {
     console.error('[Server] Unhandled error:', err);
+
+    // Ensure CORS headers are present even in error responses
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
     res.status(500).json({
         status: 'error',
         code: 'SERVER_ERROR',
