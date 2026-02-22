@@ -85,8 +85,8 @@ app.use((err, req, res, next) => {
 // ── Start Server ──────────────────────────────────
 app.listen(PORT, () => {
     console.log(`\n  ╔══════════════════════════════════════╗`);
-    console.log(`  ║  🧬 VAIDYADRISHTI AI Server v1.0.0          ║`);
+    console.log(`  ║  🧬 VAIDYADRISHTI AI Server v1.0.2          ║`); // Updated version
     console.log(`  ║  Port: ${PORT}                          ║`);
-    console.log(`  ║  Health: http://localhost:${PORT}/health ║`);
+    console.log(`  ║  Status: LIVE & HEALTHY              ║`);
     console.log(`  ╚══════════════════════════════════════╝\n`);
 });
