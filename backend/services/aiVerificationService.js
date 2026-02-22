@@ -13,9 +13,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const isLocalLLM = process.env.USE_LOCAL_LLM === 'true';
+
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: isLocalLLM ? 'ollama' : (process.env.OPENAI_API_KEY || 'fake-key'),
+    baseURL: isLocalLLM ? process.env.LOCAL_LLM_ENDPOINT : undefined,
 });
+
+const MODEL_NAME = isLocalLLM ? (process.env.LLM_MODEL_NAME || 'mistral') : 'gpt-4o';
 
 /**
  * Helper: Universal fetch with timeout to prevent hangs.
@@ -60,9 +65,9 @@ SCHEMA:
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: MODEL_NAME,
             temperature: 0,
-            response_format: { type: 'json_object' },
+            response_format: isLocalLLM ? undefined : { type: 'json_object' },
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: `Verify: "${query}"` },
@@ -192,7 +197,7 @@ Strictly avoid common generic disclaimers (like "consult a doctor"). Just state 
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: MODEL_NAME,
             temperature: 0.5,
             messages: [
                 { role: 'system', content: systemPrompt },
