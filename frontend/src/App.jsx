@@ -25,7 +25,7 @@ export default function App() {
       setPhase('preprocessing'); await sleep(500);
       setPhase('ocr');
 
-      const API_BASE = import.meta.env.VITE_API_URL || '';
+      const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
       const TARGET_URL = `${API_BASE}/api/process-prescription`;
       console.log(`[App] Calling API: ${TARGET_URL} (VITE_API_URL: ${import.meta.env.VITE_API_URL})`);
 
