@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import Home from './pages/Home';
-import SummaryCard from './components/SummaryCard';
-import MedicineCard from './components/MedicineCard';
-import HistoryPanel from './components/HistoryPanel';
-import MedicalWallet from './components/MedicalWallet';
-import DocumentScanner from './components/DocumentScanner';
+import Home from './pages/Home.jsx';
+import SummaryCard from './components/SummaryCard.jsx';
+import MedicineCard from './components/MedicineCard.jsx';
+import HistoryPanel from './components/HistoryPanel.jsx';
+import MedicalWallet from './components/MedicalWallet.jsx';
+import DocumentScanner from './components/DocumentScanner.jsx';
 import { saveToHistory } from './services/HistoryService';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
