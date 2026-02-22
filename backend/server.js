@@ -16,34 +16,23 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Middleware ─────────────────────────────────────
-// Log requests for debugging
+// ── Middleware ─────────────────────────────────────
+// Enhanced Request Logging
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log(`  - Origin: ${req.headers.origin}`);
+    console.log(`  - UA: ${req.headers['user-agent']}`);
     next();
 });
 
 app.use(
     cors({
         origin: (origin, callback) => {
-            // Sanitize origin: remove non-ASCII characters
-            const sanitizedOrigin = (origin || '').replace(/[^\x20-\x7E]/g, '');
-
-            const allowedOrigins = [
-                process.env.FRONTEND_URL,
-                'https://vaidyadrishti-ai.vercel.app',
-                'http://localhost:5173',
-                'http://localhost:3000'
-            ].map(o => (o || '').replace(/[^\x20-\x7E]/g, ''));
-
-            if (!origin || allowedOrigins.includes(sanitizedOrigin)) {
-                callback(null, true);
-            } else {
-                console.warn(`[CORS] Blocked origin: ${sanitizedOrigin}`);
-                callback(new Error('Not allowed by CORS'));
-            }
+            // Always allow for debugging, echo origin back
+            callback(null, true);
         },
         methods: ['GET', 'POST', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
         credentials: true,
     })
 );
@@ -56,7 +45,11 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        version: '1.0.1', // Bumped version
+        version: '1.0.2',
+        env: {
+            frontend_url: process.env.FRONTEND_URL ? 'set' : 'not set',
+            supabase_url: process.env.SUPABASE_URL ? 'set' : 'not set'
+        }
     });
 });
 
@@ -65,6 +58,7 @@ app.use('/api', prescriptionRouter);
 
 // ── 404 Handler ───────────────────────────────────
 app.use((req, res) => {
+    console.warn(`[404] ${req.method} ${req.path}`);
     res.status(404).json({
         status: 'error',
         code: 'NOT_FOUND',
@@ -74,11 +68,12 @@ app.use((req, res) => {
 
 // ── Global Error Handler ──────────────────────────
 app.use((err, req, res, next) => {
-    console.error('[Server] Unhandled error:', err);
+    console.error('[Server Error Handled]:', err);
 
-    // Ensure CORS headers are present even in error responses
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
+    // Robust CORS header fallback
+    const origin = req.headers.origin || 'https://vaidyadrishti-ai.vercel.app';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     res.status(500).json({
         status: 'error',
