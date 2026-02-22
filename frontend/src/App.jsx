@@ -159,6 +159,14 @@ export default function App() {
       <main style={{ flex: 1, position: 'relative', zIndex: 10 }}>
 
         {/* IDLE */}
+        {phase === 'idle' && !import.meta.env.VITE_API_URL && (
+          <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px' }}>
+            <div style={{ background: 'rgba(251,113,133,0.1)', border: '1px solid rgba(251,113,133,0.2)', borderRadius: 12, padding: '16px', color: '#fb7185', fontSize: 13, textAlign: 'center' }}>
+              ⚠️ <strong>Configuration Missing:</strong> VITE_API_URL is not set in Vercel.
+              API calls will fail until this is added and the project is redeployed.
+            </div>
+          </div>
+        )}
         {phase === 'idle' && <Home onSubmit={run} disabled={false} />}
 
         {/* PROCESSING — pure document scan animation, no text */}
