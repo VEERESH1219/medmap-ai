@@ -5,7 +5,7 @@ import MedicineCard from './components/MedicineCard.jsx';
 import HistoryPanel from './components/HistoryPanel.jsx';
 import MedicalWallet from './components/MedicalWallet.jsx';
 import DocumentScanner from './components/DocumentScanner.jsx';
-import { saveToHistory } from './services/HistoryService';
+import { saveToHistory } from './services/HistoryService.js';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
