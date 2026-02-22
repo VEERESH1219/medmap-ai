@@ -22,7 +22,7 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
-router.post('/process-prescription', async (req, res) => {
+router.post(['/process-prescription', '/process_prescription'], async (req, res) => {
     const startTime = Date.now();
     const sessionId = randomUUID();
 
