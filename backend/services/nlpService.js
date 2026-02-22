@@ -10,9 +10,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const isLocalLLM = process.env.USE_LOCAL_LLM === 'true';
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: isLocalLLM ? 'ollama' : (process.env.OPENAI_API_KEY || 'fake-key'),
+  baseURL: isLocalLLM ? process.env.LOCAL_LLM_ENDPOINT : undefined,
 });
+
+const MODEL_NAME = isLocalLLM ? (process.env.LLM_MODEL_NAME || 'mistral') : 'gpt-4o';
 
 const SYSTEM_PROMPT = `You are a strict medical data extraction engine. Your task is to extract medicine-related entities and the overall medical condition/diagnosis from the given text.
 
@@ -76,9 +81,9 @@ export async function runNLPExtraction(ocrText) {
       console.log('[NLP] Full Input Text:\n', ocrText);
 
       response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: MODEL_NAME,
         temperature: 0,
-        response_format: { type: 'json_object' },
+        response_format: isLocalLLM ? undefined : { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },

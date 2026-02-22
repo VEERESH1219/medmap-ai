@@ -234,6 +234,10 @@ export async function matchMedicines(extractions) {
 
             if (aiMatch) {
                 matchedMedicine = aiMatch;
+                // --- TRAINING STAGE: Persist high-confidence external matches ---
+                if (matchedMedicine.confidence === 'High') {
+                    await persistExternalMatch(matchedMedicine);
+                }
             }
         }
 
@@ -268,4 +272,53 @@ export async function matchMedicines(extractions) {
     }));
 
     return results;
+}
+
+/**
+ * Persists an external AI match to the local database for future matching.
+ * This effectively "trains" the system with new medicines.
+ */
+async function persistExternalMatch(aiMatch) {
+    try {
+        console.log(`[Training] Persisting new medicine: "${aiMatch.brand_name}"...`);
+
+        // 1. Check if it somehow already exists (prevent race conditions)
+        const { data: existing } = await supabase
+            .from('medicines')
+            .select('id')
+            .ilike('brand_name', aiMatch.brand_name)
+            .eq('strength', aiMatch.strength || '')
+            .eq('form', aiMatch.form || '')
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            console.log(`[Training] Medicine already exists in DB. Skipping persistence.`);
+            return;
+        }
+
+        // 2. Generate embedding for the new record
+        const embeddingText = `${aiMatch.brand_name} ${aiMatch.generic_name} ${aiMatch.form}`.trim();
+        const embedding = await getEmbedding(embeddingText);
+
+        // 3. Insert into medicines table
+        const { error: insertError } = await supabase
+            .from('medicines')
+            .insert({
+                brand_name: aiMatch.brand_name,
+                generic_name: aiMatch.generic_name,
+                strength: aiMatch.strength || '',
+                form: aiMatch.form || '',
+                is_combination: aiMatch.generic_name.includes('+') || aiMatch.generic_name.includes('/'),
+                embedding: JSON.stringify(embedding),
+                manufacturer: 'Persisted from AI'
+            });
+
+        if (insertError) {
+            console.error(`[Training] Error persisting ${aiMatch.brand_name}:`, insertError.message);
+        } else {
+            console.log(`[Training] Successfully saved "${aiMatch.brand_name}" to the database.`);
+        }
+    } catch (err) {
+        console.error(`[Training] Critical error during persistence:`, err.message);
+    }
 }
