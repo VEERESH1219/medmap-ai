@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getHistory, clearHistory, deleteHistoryEntry } from '../services/HistoryService';
+import { getHistory, clearHistory, deleteHistoryEntry } from '../services/HistoryService.js';
 
 function timeAgo(iso) {
     const s = (Date.now() - new Date(iso)) / 1000;

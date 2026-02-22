@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { speak, stop, isSpeaking, isSupported } from '../services/SpeechService';
+import { speak, stop, isSpeaking, isSupported } from '../services/SpeechService.js';
 
 export default function SummaryCard({ result }) {
     const [speaking, setSpeaking] = useState(false);
