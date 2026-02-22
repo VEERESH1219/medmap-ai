@@ -25,11 +25,24 @@ export default function App() {
       setPhase('preprocessing'); await sleep(500);
       setPhase('ocr');
 
-      const res = await fetch('/api/process-prescription', {
+      const API_BASE = import.meta.env.VITE_API_URL || '';
+      const TARGET_URL = `${API_BASE}/api/process-prescription`;
+      console.log(`[App] Calling API: ${TARGET_URL} (VITE_API_URL: ${import.meta.env.VITE_API_URL})`);
+
+      const res = await fetch(TARGET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...input, options: { ocr_passes: 5, min_consensus: 3 } }),
       });
+
+      // Handle non-JSON responses (e.g., HTML 404s from the frontend service)
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Non-JSON response received:', text.slice(0, 200));
+        throw new Error(`Server returned an invalid response (not JSON). Please check if VITE_API_URL is configured correctly.`);
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `Server error ${res.status}`);
 
@@ -39,6 +52,7 @@ export default function App() {
       setResult(data);
       setPhase('done');
     } catch (e) {
+      console.error('[App] processing error:', e);
       setError(e.message || 'Something went wrong.'); setPhase('error');
     }
   }
