@@ -11,12 +11,21 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// ── Environment Sanitization ─────────────────────
+// Clean environment variables (removes hidden Unicode/BOM)
+Object.keys(process.env).forEach(key => {
+    if (typeof process.env[key] === 'string') {
+        process.env[key] = process.env[key].replace(/[^\x20-\x7E]/g, '').trim();
+    }
+});
+
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY
 );
 
 async function processBatch(batch) {
+    console.log(`📡 Connecting to: ${process.env.SUPABASE_URL}`);
     return Promise.all(
         batch.map(async (med) => {
             try {
@@ -54,7 +63,8 @@ async function main() {
     let totalProcessed = 0;
 
     while (totalProcessed < TOTAL_LIMIT) {
-        console.log(`\n⏳ Fetching next ${FETCH_CHUNK} records without embeddings...`);
+        console.log(`📡 Connecting to Supabase at: ${process.env.SUPABASE_URL}`);
+        console.log(`⏳ Fetching next ${FETCH_CHUNK} records without embeddings...`);
 
         const { data: missing, error } = await supabase
             .from('medicines')

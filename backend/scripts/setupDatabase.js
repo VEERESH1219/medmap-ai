@@ -60,7 +60,7 @@ async function main() {
     console.log('\n🗄️  MedMap AI — Database Setup\n');
     console.log(`   Supabase: ${SUPABASE_URL}\n`);
 
-    const dbDir = resolve(__dirname, '..', 'database');
+    const dbDir = resolve(__dirname, '..', '..', 'database');
 
     for (const file of SQL_FILES) {
         const filePath = resolve(dbDir, file);
